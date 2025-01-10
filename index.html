@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Cosmic Stars</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+        <!-- Default version -->
+        <script src="cosmicStars.js"></script>
+        <!-- <script src="releaseStars.js"></script> -->
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                background: black;
+            }
+            #container {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 200px;
+                height: 200px;
+                border-radius: 50%;
+                border: 2px solid white;
+                pointer-events: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container"></div>
+    </body>
+</html>

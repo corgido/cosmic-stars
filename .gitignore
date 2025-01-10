@@ -1,0 +1,42 @@
+# Logs
+logs/
+*.log
+
+# Node.js (if using Node.js or npm)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS-generated files
+.DS_Store         # macOS
+Thumbs.db         # Windows
+desktop.ini       # Windows
+
+# IDE or Editor Files
+.idea/            # JetBrains IDEs (e.g., WebStorm, IntelliJ)
+.vscode/          # Visual Studio Code
+*.sublime-workspace
+*.sublime-project
+
+# System files
+*.bak
+*.swp
+*.tmp
+
+# Cache and temporary files
+.cache/
+dist/
+build/
+*.tmp
+*.lock
+*.pid
+
+# p5.js specific (if applicable)
+*.webm
+*.ogg
+*.mp4
+*.mov
+
+# GitHub Desktop specific
+.git/
