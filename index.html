@@ -4,17 +4,18 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Cosmic Stars</title>
+
         <!-- Load p5.js Library -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
-        <!-- Google Fonts -->
+
+        <!-- Google Font (Inter) -->
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
             rel="stylesheet"
         />
 
-        <!-- Styles -->
         <style>
-            /* Reset & Body Setup */
+            /* Body Setup */
             body {
                 margin: 0;
                 overflow: hidden;
@@ -23,10 +24,10 @@
                 justify-content: center;
                 height: 100vh;
                 background: black;
-                font-family: "Inter", sans-serif; /* Modern font */
+                font-family: "Inter", sans-serif; /* Modern font for entire page */
             }
 
-            /* Polished Container with Subtle Glow Effect */
+            /* The circle container for p5 star placement */
             #container {
                 position: absolute;
                 top: 50%;
@@ -35,66 +36,63 @@
                 width: 200px;
                 height: 200px;
                 border-radius: 50%;
+                border: 2px solid white;
                 pointer-events: none;
-
-                /* Base border */
-                border: 2px solid rgba(255, 255, 255, 0.4);
-
-                /* Dynamic glow (you can adjust the color or intensities) */
-                box-shadow:
-                    0 0 30px rgba(0, 225, 255, 0.4),
-                    0 0 60px rgba(255, 0, 255, 0.2);
-
-                /* Optional animation to vary the glow */
-                animation: cosmicGlow 5s ease-in-out infinite alternate;
             }
-            @keyframes cosmicGlow {
-                0% {
-                    box-shadow:
-                        0 0 20px rgba(0, 225, 255, 0.3),
-                        0 0 40px rgba(255, 0, 255, 0.15);
+            /* Responsive adjustments */
+            @media (max-width: 600px) {
+                #container {
+                    width: 150px;
+                    height: 150px;
                 }
-                100% {
-                    box-shadow:
-                        0 0 35px rgba(0, 225, 255, 0.6),
-                        0 0 80px rgba(255, 0, 255, 0.3);
+            }
+            @media (max-width: 400px) {
+                #container {
+                    width: 100px;
+                    height: 100px;
                 }
             }
 
+            /* The canvas (created by p5) */
             canvas {
-                touch-action: manipulation; /* Allow pinch-to-zoom */
+                touch-action: manipulation; /* For pinch-to-zoom on mobile, if needed */
             }
 
-            /* Branding with subtle gradient animation */
+            /* Branding (top-left) */
             #branding {
                 position: absolute;
                 top: 20px;
                 left: 20px;
                 z-index: 999;
-                font-size: 1.4rem;
+                font-size: 1.2rem;
                 color: #fff;
-                padding: 4px 10px;
-                border: 1px solid rgba(255, 255, 255, 0.2);
+                padding: 6px 12px;
+                background: #2f6bf1;
                 border-radius: 4px;
-                font-family: "Inter", sans-serif;
-                /* Gradient background that animates */
-                background: linear-gradient(45deg, #6b73ff, #000dff, #c6ffdd);
-                background-size: 400% 400%;
-                animation: brandingGlow 10s ease infinite;
-            }
-            @keyframes brandingGlow {
-                0% {
-                    background-position: 0% 50%;
-                }
-                50% {
-                    background-position: 100% 50%;
-                }
-                100% {
-                    background-position: 0% 50%;
-                }
             }
 
-            /* Minimalistic toolbar styling (top-right corner) */
+            /* CTA container (left side) */
+            #cta {
+                position: absolute;
+                top: 120px;
+                left: 20px;
+                max-width: 300px;
+                z-index: 999;
+                color: #fff;
+            }
+            #cta h1 {
+                font-size: 2rem;
+                margin-bottom: 0.5em;
+                font-weight: 600;
+            }
+            #cta p {
+                font-size: 1.1rem;
+                line-height: 1.5;
+                margin: 0;
+                font-weight: 400;
+            }
+
+            /* Minimal toolbar (top-right), no zoom controls now */
             #toolbar {
                 position: absolute;
                 top: 20px;
@@ -103,12 +101,10 @@
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.2);
+                background: rgba(255, 255, 255, 0.1);
                 border-radius: 8px;
                 padding: 6px 8px;
             }
-
             #toolbar button {
                 background: none;
                 border: 1px solid rgba(255, 255, 255, 0.3);
@@ -118,16 +114,9 @@
                 height: 36px;
                 font-size: 1.1rem;
                 cursor: pointer;
-                transition:
-                    background 0.2s,
-                    border-color 0.2s;
-            }
-            #toolbar button:hover {
-                background: rgba(255, 255, 255, 0.15);
-                border-color: rgba(255, 255, 255, 0.5);
             }
 
-            /* Info icon and tooltip box */
+            /* Info box with gradient background, restored “beauty” */
             #infoBox {
                 position: absolute;
                 bottom: 20px;
@@ -141,33 +130,23 @@
                 color: #fff;
                 padding: 15px;
                 font-size: 0.95rem;
-                font-family: "Inter", sans-serif;
-                font-weight: 400;
                 border-radius: 8px;
                 box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-                display: none; /* Hidden by default */
+                display: none;
                 z-index: 999;
             }
             #infoBox p {
-                margin: 0;
-                line-height: 1.6;
+                margin: 0 0 8px;
+                line-height: 1.4;
             }
 
-            /* Animate subtle color shifts on the info icon to make it noticeable */
-            #infoIcon {
-                background: linear-gradient(45deg, #3a3a3a, #6d6d6d, #3a3a3a);
-                background-size: 200% 200%;
-                animation: infoIconGlow 5s ease infinite;
-            }
-            @keyframes infoIconGlow {
-                0% {
-                    background-position: 0% 50%;
-                }
-                50% {
-                    background-position: 100% 50%;
-                }
-                100% {
-                    background-position: 0% 50%;
+            /* Hide UI on small screens (mobile) */
+            @media (max-width: 800px) {
+                #branding,
+                #toolbar,
+                #infoBox,
+                #cta {
+                    display: none !important;
                 }
             }
         </style>
@@ -177,33 +156,32 @@
         <!-- Branding text -->
         <div id="branding">Cosmic Stars</div>
 
-        <!-- Floating minimalistic toolbar -->
-        <div id="toolbar">
-            <!-- Zoom Out button -->
-            <button id="zoomOut">−</button>
-
-            <!-- Mode Switch button (two icons in one circular button) -->
-            <button id="switchMode">
-                <span style="font-size: 1.2rem; margin-right: 2px">↕</span>
-            </button>
-
-            <!-- Zoom In button -->
-            <button id="zoomIn">+</button>
-
-            <!-- Info icon -->
-            <button id="infoIcon" style="border-radius: 4px">i</button>
+        <!-- CTA Blurb on the left -->
+        <div id="cta">
+            <h1>Each Star Is Uniquely Yours</h1>
+            <p>
+                Watch as brand-new cosmic seeds emerge before your eyes. No two
+                stars are the same—each follows its own path through the
+                darkness, born just for you.
+            </p>
         </div>
 
-        <!-- Info box that appears when the user clicks the info icon -->
+        <!-- Minimalistic toolbar (only Switch + Info) -->
+        <div id="toolbar">
+            <!-- Mode Switch button (arrow only) -->
+            <button id="switchMode">↕</button>
+            <!-- Info icon -->
+            <button id="infoIcon">i</button>
+        </div>
+
+        <!-- Info box that appears on desktop when user clicks info icon -->
         <div id="infoBox">
             <p><strong>What is this?</strong></p>
-            <p>- Art meets tech demo. Each star is randomly unique</p>
-            <p>- Use <strong>−</strong>/<strong>+</strong> to zoom in/out.</p>
+            <p>- This is a cosmic star generator—each star is unique.</p>
             <p>- Click <strong>↕</strong> to switch between star modes.</p>
-            <p>- The sketches have not been designed "for high-res"</p>
         </div>
 
-        <!-- Polished container with glow -->
+        <!-- Circle container (CSS-based) -->
         <div id="container"></div>
 
         <!-- p5 Sketch Scripts -->
@@ -212,7 +190,7 @@
 
         <!-- Main Script for Managing Sketches & UI -->
         <script>
-            // Cookie getters/setters for star mode
+            // Cookie handling
             function getCookie(name) {
                 const value = `; ${document.cookie}`;
                 const parts = value.split(`; ${name}=`);
@@ -230,11 +208,9 @@
                     name + "=" + (value || "") + expires + "; path=/";
             }
 
-            // Initialize star mode from cookie
             let currentMode = getCookie("starMode") || "cosmicStars";
             let activeSketch = null;
 
-            // Function to load the appropriate sketch
             function loadSketch(mode) {
                 if (activeSketch) {
                     activeSketch.remove();
@@ -242,15 +218,12 @@
                 }
                 if (mode === "cosmicStars") {
                     activeSketch = new p5(CosmicStarsSketch);
-                } else {
+                } else if (mode === "releaseStars") {
                     activeSketch = new p5(ReleaseStarsSketch);
                 }
             }
-
-            // Load the initial sketch
             loadSketch(currentMode);
 
-            // Switch mode button
             const switchButton = document.getElementById("switchMode");
             switchButton.addEventListener("click", () => {
                 currentMode =
@@ -261,28 +234,9 @@
                 loadSketch(currentMode);
             });
 
-            // Zoom controls
-            let scaleFactor = 1;
-            const zoomInBtn = document.getElementById("zoomIn");
-            const zoomOutBtn = document.getElementById("zoomOut");
-
-            zoomInBtn.addEventListener("click", () => {
-                scaleFactor += 0.1;
-                document.querySelector("canvas").style.transform =
-                    `scale(${scaleFactor})`;
-            });
-            zoomOutBtn.addEventListener("click", () => {
-                if (scaleFactor > 0.2) {
-                    scaleFactor -= 0.1;
-                    document.querySelector("canvas").style.transform =
-                        `scale(${scaleFactor})`;
-                }
-            });
-
             // Info icon toggle
             const infoIcon = document.getElementById("infoIcon");
             const infoBox = document.getElementById("infoBox");
-
             infoIcon.addEventListener("click", () => {
                 infoBox.style.display =
                     infoBox.style.display === "none" ? "block" : "none";

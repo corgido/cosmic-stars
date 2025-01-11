@@ -3,7 +3,9 @@
 Cosmic Stars - Instance Mode
 Author: corgido
 Created: 2025-01-10
-Description: This JavaScript file contains the logic for a p5.js animation of stars orbiting dynamically.
+Description: This JavaScript file contains the logic for a p5.js animation
+of stars orbiting dynamically.
+
 Features include:
 - Radial wobble with Perlin noise
 - Colorful, evolving trails
@@ -19,15 +21,17 @@ function CosmicStarsSketch(p) {
 
   p.setup = function () {
     p.createCanvas(p.windowWidth, p.windowHeight);
-    p.initializeContainer();
 
-    // Delay animation start by 555ms
-    p.noLoop(); // Ensure draw() doesn't run until manually triggered
+    // Delay container init to ensure DOM is ready
     setTimeout(() => {
-      // Corrected: Removed 'p.' prefix
-      p.loop(); // Start the animation
-      p.createNewStar(); // Optionally create the first star immediately
-    }, 555);
+      p.initializeContainer();
+      // Delay animation start by 555ms
+      p.noLoop();
+      setTimeout(() => {
+        p.loop(); // Start the animation
+        p.createNewStar();
+      }, 555);
+    }, 100); // small delay for bounding box
   };
 
   p.windowResized = function () {
@@ -37,22 +41,27 @@ function CosmicStarsSketch(p) {
 
   p.initializeContainer = function () {
     const container = document.getElementById("container");
+    if (!container) return;
+
     const rect = container.getBoundingClientRect();
-    containerX = rect.left + rect.width / 2;
-    containerY = rect.top + rect.height / 2;
-    containerRadius = rect.width / 2;
+    let w = rect.width;
+    let h = rect.height;
+
+    // Fallback if bounding box is zero
+    if (w === 0 || h === 0) {
+      w = p.width / 2;
+      h = p.height / 2;
+    }
+
+    containerX = rect.left + w / 2 + window.scrollX;
+    containerY = rect.top + h / 2 + window.scrollY;
+    containerRadius = w / 2;
   };
 
   p.draw = function () {
-    p.background(0, 25); // Trails
+    p.background(0, 25); // Trails effect
 
-    // Draw the circular container
-    p.noFill();
-    p.stroke(255, 50);
-    p.strokeWeight(2);
-    p.ellipse(containerX, containerY, containerRadius * 2);
-
-    // Gradual star generation (one at a time)
+    // Generate a new star every 20 frames
     if (p.frameCount % 20 === 0) {
       p.createNewStar();
     }
@@ -70,32 +79,32 @@ function CosmicStarsSketch(p) {
 
   class Particle {
     constructor(x, y, maxLife) {
-      this.origin = p.createVector(x, y); // Emission point (center of circle)
-      this.pos = this.origin.copy(); // Current position
-      this.prev = this.pos.copy(); // Previous position
-      this.angle = p.random(p.TWO_PI); // Random initial direction
-      this.radius = p.random(containerRadius * 1.05, containerRadius * 1.15); // Orbit radius
+      this.origin = p.createVector(x, y);
+      this.pos = this.origin.copy();
+      this.prev = this.pos.copy();
+      this.angle = p.random(p.TWO_PI);
+      this.radius = p.random(containerRadius * 1.05, containerRadius * 1.15);
       this.color = p.color(
-        p.random(100, 255), // Vibrant random colors
+        p.random(100, 255),
         p.random(100, 255),
         p.random(100, 255),
         200,
       );
-      this.lifespan = maxLife; // Maximum lifespan in frames
-      this.life = 0; // Current life in frames
-      this.size = p.random(1, 3); // Tiny stars
-      this.rotation = p.random(p.TWO_PI); // Rotation of the star
-      this.rotationSpeed = p.random(-0.25, 0.25); // Speed of rotation
-      this.direction = p.random() > 0.5 ? 1 : -1; // Random clockwise or counterclockwise
-      this.noiseOffset = p.random(1000); // Unique noise offset for wobble
-      this.burnStrength = p.random(0.2, 0.5); // Strength of "radial out" motion
+      this.lifespan = maxLife;
+      this.life = 0;
+      this.size = p.random(1, 3);
+      this.rotation = p.random(p.TWO_PI);
+      this.rotationSpeed = p.random(-0.25, 0.25);
+      this.direction = p.random() > 0.5 ? 1 : -1;
+      this.noiseOffset = p.random(1000);
+      this.burnStrength = p.random(0.2, 0.5);
     }
 
     update() {
       // Increment angle for orbit motion
       this.angle += this.direction * 0.02;
 
-      // Simulate "burn radial out" using a noise-based wobble
+      // "Burn radial out" with Perlin noise
       let radialBurn = p.map(
         p.noise(this.noiseOffset + p.frameCount * 0.01),
         0,
@@ -105,7 +114,7 @@ function CosmicStarsSketch(p) {
       );
       let radialOffset = this.radius + radialBurn * this.radius;
 
-      // Update position based on angle and radial wobble
+      // Update position
       this.pos.x = containerX + radialOffset * p.cos(this.angle);
       this.pos.y = containerY + radialOffset * p.sin(this.angle);
 
@@ -114,28 +123,26 @@ function CosmicStarsSketch(p) {
     }
 
     show() {
+      // Draw star shape
       p.push();
       p.translate(this.pos.x, this.pos.y);
-      p.rotate(this.rotation); // Rotate the star
-
-      // Draw the star
+      p.rotate(this.rotation);
       p.fill(this.color);
       p.noStroke();
       this.drawStar(0, 0, this.size, this.size / 2, 5);
-
       p.pop();
 
       // Dynamic trail color
       let trailColor = p.color(
-        p.map(p.sin(p.frameCount * 0.01), -1, 1, 100, 255), // Dynamic red channel
-        p.map(p.cos(p.frameCount * 0.01), -1, 1, 100, 255), // Dynamic green channel
-        p.map(p.sin(p.frameCount * 0.02), -1, 1, 100, 255), // Dynamic blue channel
+        p.map(p.sin(p.frameCount * 0.01), -1, 1, 100, 255),
+        p.map(p.cos(p.frameCount * 0.01), -1, 1, 100, 255),
+        p.map(p.sin(p.frameCount * 0.02), -1, 1, 100, 255),
         25,
       );
 
       // Draw trail
       p.stroke(trailColor);
-      p.strokeWeight(2.5); // Perfect trail thickness
+      p.strokeWeight(2.5);
       p.line(this.pos.x, this.pos.y, this.prev.x, this.prev.y);
       this.prev = this.pos.copy();
     }
@@ -161,7 +168,7 @@ function CosmicStarsSketch(p) {
   }
 
   p.createNewStar = function () {
-    const maxLife = p.random(300, 900); // Random lifespan (5 to 15 seconds)
+    const maxLife = p.random(300, 900); // 5 to 15 seconds
     particles.push(new Particle(containerX, containerY, maxLife));
   };
 }
