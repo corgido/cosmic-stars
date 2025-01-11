@@ -1,12 +1,20 @@
 <!doctype html>
-<html>
+<html lang="en">
     <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Cosmic Stars</title>
+        <!-- Load p5.js Library -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
-        <!-- Default version -->
-        <script src="cosmicStars.js"></script>
-        <!-- <script src="releaseStars.js"></script> -->
+        <!-- Google Fonts -->
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+            rel="stylesheet"
+        />
+
+        <!-- Styles -->
         <style>
+            /* Reset & Body Setup */
             body {
                 margin: 0;
                 overflow: hidden;
@@ -15,7 +23,10 @@
                 justify-content: center;
                 height: 100vh;
                 background: black;
+                font-family: "Inter", sans-serif; /* Modern font */
             }
+
+            /* Polished Container with Subtle Glow Effect */
             #container {
                 position: absolute;
                 top: 50%;
@@ -24,12 +35,258 @@
                 width: 200px;
                 height: 200px;
                 border-radius: 50%;
-                border: 2px solid white;
                 pointer-events: none;
+
+                /* Base border */
+                border: 2px solid rgba(255, 255, 255, 0.4);
+
+                /* Dynamic glow (you can adjust the color or intensities) */
+                box-shadow:
+                    0 0 30px rgba(0, 225, 255, 0.4),
+                    0 0 60px rgba(255, 0, 255, 0.2);
+
+                /* Optional animation to vary the glow */
+                animation: cosmicGlow 5s ease-in-out infinite alternate;
+            }
+            @keyframes cosmicGlow {
+                0% {
+                    box-shadow:
+                        0 0 20px rgba(0, 225, 255, 0.3),
+                        0 0 40px rgba(255, 0, 255, 0.15);
+                }
+                100% {
+                    box-shadow:
+                        0 0 35px rgba(0, 225, 255, 0.6),
+                        0 0 80px rgba(255, 0, 255, 0.3);
+                }
+            }
+
+            canvas {
+                touch-action: manipulation; /* Allow pinch-to-zoom */
+            }
+
+            /* Branding with subtle gradient animation */
+            #branding {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                z-index: 999;
+                font-size: 1.4rem;
+                color: #fff;
+                padding: 4px 10px;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 4px;
+                font-family: "Inter", sans-serif;
+                /* Gradient background that animates */
+                background: linear-gradient(45deg, #6b73ff, #000dff, #c6ffdd);
+                background-size: 400% 400%;
+                animation: brandingGlow 10s ease infinite;
+            }
+            @keyframes brandingGlow {
+                0% {
+                    background-position: 0% 50%;
+                }
+                50% {
+                    background-position: 100% 50%;
+                }
+                100% {
+                    background-position: 0% 50%;
+                }
+            }
+
+            /* Minimalistic toolbar styling (top-right corner) */
+            #toolbar {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                z-index: 999;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 8px;
+                padding: 6px 8px;
+            }
+
+            #toolbar button {
+                background: none;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 50%;
+                color: #fff;
+                width: 36px;
+                height: 36px;
+                font-size: 1.1rem;
+                cursor: pointer;
+                transition:
+                    background 0.2s,
+                    border-color 0.2s;
+            }
+            #toolbar button:hover {
+                background: rgba(255, 255, 255, 0.15);
+                border-color: rgba(255, 255, 255, 0.5);
+            }
+
+            /* Info icon and tooltip box */
+            #infoBox {
+                position: absolute;
+                bottom: 20px;
+                left: 20px;
+                width: 250px;
+                background: linear-gradient(
+                    145deg,
+                    rgba(20, 20, 20, 0.9),
+                    rgba(50, 50, 50, 0.9)
+                );
+                color: #fff;
+                padding: 15px;
+                font-size: 0.95rem;
+                font-family: "Inter", sans-serif;
+                font-weight: 400;
+                border-radius: 8px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+                display: none; /* Hidden by default */
+                z-index: 999;
+            }
+            #infoBox p {
+                margin: 0;
+                line-height: 1.6;
+            }
+
+            /* Animate subtle color shifts on the info icon to make it noticeable */
+            #infoIcon {
+                background: linear-gradient(45deg, #3a3a3a, #6d6d6d, #3a3a3a);
+                background-size: 200% 200%;
+                animation: infoIconGlow 5s ease infinite;
+            }
+            @keyframes infoIconGlow {
+                0% {
+                    background-position: 0% 50%;
+                }
+                50% {
+                    background-position: 100% 50%;
+                }
+                100% {
+                    background-position: 0% 50%;
+                }
             }
         </style>
     </head>
+
     <body>
+        <!-- Branding text -->
+        <div id="branding">Cosmic Stars</div>
+
+        <!-- Floating minimalistic toolbar -->
+        <div id="toolbar">
+            <!-- Zoom Out button -->
+            <button id="zoomOut">−</button>
+
+            <!-- Mode Switch button (two icons in one circular button) -->
+            <button id="switchMode">
+                <span style="font-size: 1.2rem; margin-right: 2px">↕</span>
+            </button>
+
+            <!-- Zoom In button -->
+            <button id="zoomIn">+</button>
+
+            <!-- Info icon -->
+            <button id="infoIcon" style="border-radius: 4px">i</button>
+        </div>
+
+        <!-- Info box that appears when the user clicks the info icon -->
+        <div id="infoBox">
+            <p><strong>What is this?</strong></p>
+            <p>- Art meets tech demo. Each star is randomly unique</p>
+            <p>- Use <strong>−</strong>/<strong>+</strong> to zoom in/out.</p>
+            <p>- Click <strong>↕</strong> to switch between star modes.</p>
+            <p>- The sketches have not been designed "for high-res"</p>
+        </div>
+
+        <!-- Polished container with glow -->
         <div id="container"></div>
+
+        <!-- p5 Sketch Scripts -->
+        <script src="cosmicStars.js"></script>
+        <script src="releaseStars.js"></script>
+
+        <!-- Main Script for Managing Sketches & UI -->
+        <script>
+            // Cookie getters/setters for star mode
+            function getCookie(name) {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(";").shift();
+                return null;
+            }
+            function setCookie(name, value, days) {
+                let expires = "";
+                if (days) {
+                    const date = new Date();
+                    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+                    expires = "; expires=" + date.toUTCString();
+                }
+                document.cookie =
+                    name + "=" + (value || "") + expires + "; path=/";
+            }
+
+            // Initialize star mode from cookie
+            let currentMode = getCookie("starMode") || "cosmicStars";
+            let activeSketch = null;
+
+            // Function to load the appropriate sketch
+            function loadSketch(mode) {
+                if (activeSketch) {
+                    activeSketch.remove();
+                    activeSketch = null;
+                }
+                if (mode === "cosmicStars") {
+                    activeSketch = new p5(CosmicStarsSketch);
+                } else {
+                    activeSketch = new p5(ReleaseStarsSketch);
+                }
+            }
+
+            // Load the initial sketch
+            loadSketch(currentMode);
+
+            // Switch mode button
+            const switchButton = document.getElementById("switchMode");
+            switchButton.addEventListener("click", () => {
+                currentMode =
+                    currentMode === "cosmicStars"
+                        ? "releaseStars"
+                        : "cosmicStars";
+                setCookie("starMode", currentMode, 7);
+                loadSketch(currentMode);
+            });
+
+            // Zoom controls
+            let scaleFactor = 1;
+            const zoomInBtn = document.getElementById("zoomIn");
+            const zoomOutBtn = document.getElementById("zoomOut");
+
+            zoomInBtn.addEventListener("click", () => {
+                scaleFactor += 0.1;
+                document.querySelector("canvas").style.transform =
+                    `scale(${scaleFactor})`;
+            });
+            zoomOutBtn.addEventListener("click", () => {
+                if (scaleFactor > 0.2) {
+                    scaleFactor -= 0.1;
+                    document.querySelector("canvas").style.transform =
+                        `scale(${scaleFactor})`;
+                }
+            });
+
+            // Info icon toggle
+            const infoIcon = document.getElementById("infoIcon");
+            const infoBox = document.getElementById("infoBox");
+
+            infoIcon.addEventListener("click", () => {
+                infoBox.style.display =
+                    infoBox.style.display === "none" ? "block" : "none";
+            });
+        </script>
     </body>
 </html>

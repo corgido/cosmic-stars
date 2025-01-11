@@ -16,6 +16,7 @@ desktop.ini       # Windows
 # IDE or Editor Files
 .idea/            # JetBrains IDEs (e.g., WebStorm, IntelliJ)
 .vscode/          # Visual Studio Code
+.dev/
 *.sublime-workspace
 *.sublime-project
 
