@@ -5,124 +5,186 @@ Author: corgido
 Created: 2025-01-10
 Description: This script spawns stars gradually within the CSS-defined circular container
 (#container) and allows them to float freely with dynamic, randomized movement.
+
+Features include:
+- Cosmic color palette with glow effects
+- Perlin noise-driven movement with gravity attraction
+- Dynamic fading and star twinkle
+- Color-matched tapered trails
+
 License: MIT
 */
 
 function ReleaseStarsSketch(p) {
-  const maxStars = 100; // Set your desired maximum number of stars
+  const CONFIG = {
+    MAX_PARTICLES: 100,
+    SPAWN_INTERVAL: 20,
+    START_DELAY: 600,
+    MIN_LIFE: 300,
+    MAX_LIFE: 800,
+    ATTRACTION_STRENGTH: 0.25,
+    VELOCITY_MIN: 0.5,
+    VELOCITY_MAX: 5,
+    STAR_SIZE_MIN: 2,
+    STAR_SIZE_MAX: 6,
+    BG_FADE: 40,
+    TRAIL_WEIGHT_MAX: 4,
+    TRAIL_WEIGHT_MIN: 0.5,
+    GLOW_OUTER_SIZE: 6,
+    GLOW_INNER_SIZE: 3,
+    GLOW_OUTER_ALPHA: 8,
+    GLOW_INNER_ALPHA: 15,
+    NOISE_SCALE: 0.01,
+    NOISE_FORCE: 0.5,
+    RESIZE_DEBOUNCE: 150,
+  };
+
+  // Cosmic hue ranges: blues, purples, golds, warm reds
+  const HUE_RANGES = [[200, 260], [270, 310], [20, 50], [0, 15]];
+
   let particles = [];
   let containerX, containerY, containerRadius;
   let gravityCenter;
-  let attractionStrength = 0.25; // Strength of attraction toward the center (set to 0 to disable)
+  let resizeTimer;
+  let bgBuffer;
 
   p.setup = function () {
     p.createCanvas(p.windowWidth, p.windowHeight);
-
+    p.colorMode(p.HSB, 360, 100, 100, 100);
     p.initializeContainer();
+    createBgBuffer();
 
-    gravityCenter = p.createVector(containerX, containerY); // Optional gravity center
+    gravityCenter = p.createVector(containerX, containerY);
 
-    // Delay the start of the animation
-    p.noLoop(); // Pause the draw loop initially
+    p.noLoop();
     setTimeout(() => {
-      // Corrected: Removed 'p.' prefix
-      p.loop(); // Start the draw loop
-      p.createNewStar(); // Emit the first star
-    }, 555);
+      p.loop();
+      p.createNewStar();
+    }, CONFIG.START_DELAY);
   };
 
+  function createBgBuffer() {
+    bgBuffer = p.createGraphics(p.width, p.height);
+    bgBuffer.colorMode(bgBuffer.HSB, 360, 100, 100, 100);
+    bgBuffer.background(0, 0, 0);
+    let maxDim = Math.max(p.width, p.height);
+    for (let r = maxDim; r > 0; r -= 4) {
+      bgBuffer.noStroke();
+      let alpha = p.map(r, 0, maxDim, 1.5, 0);
+      bgBuffer.fill(260, 40, 8, alpha);
+      bgBuffer.ellipse(p.width / 2, p.height / 2, r, r);
+    }
+  }
+
   p.windowResized = function () {
-    p.resizeCanvas(p.windowWidth, p.windowHeight);
-    p.initializeContainer();
-    gravityCenter = p.createVector(containerX, containerY);
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      p.resizeCanvas(p.windowWidth, p.windowHeight);
+      p.initializeContainer();
+      createBgBuffer();
+      gravityCenter = p.createVector(containerX, containerY);
+    }, CONFIG.RESIZE_DEBOUNCE);
   };
 
   p.initializeContainer = function () {
-    // Get the position and size of the CSS-defined #container
     const container = document.getElementById("container");
+    if (!container) return;
     const rect = container.getBoundingClientRect();
-    containerX = rect.left + rect.width / 2; // Center X of the container
-    containerY = rect.top + rect.height / 2; // Center Y of the container
-    containerRadius = rect.width / 2; // Radius based on container width
+    containerX = rect.left + rect.width / 2;
+    containerY = rect.top + rect.height / 2;
+    containerRadius = rect.width / 2;
   };
 
   p.draw = function () {
-    p.background(0, 50); // Create a faint trail effect
+    p.tint(0, 0, 100, CONFIG.BG_FADE);
+    p.image(bgBuffer, 0, 0);
+    p.noTint();
 
-    // Update and draw particles
     for (let i = particles.length - 1; i >= 0; i--) {
       particles[i].update();
       particles[i].show();
 
       if (particles[i].isDead()) {
-        particles.splice(i, 1); // Remove expired stars
+        particles.splice(i, 1);
       }
     }
 
-    // Gradual star generation (one star every 20 frames)
-    if (p.frameCount % 20 === 0) {
+    if (p.frameCount % CONFIG.SPAWN_INTERVAL === 0) {
       p.createNewStar();
     }
   };
 
   class Particle {
     constructor(x, y, maxLife) {
-      this.pos = p.createVector(x, y); // Current position
-      this.prev = this.pos.copy(); // Previous position for trail
-      this.vel = p5.Vector.random2D().mult(p.random(0.5, 5)); // Random initial velocity
-      this.color = p.color(
-        p.random(100, 255),
-        p.random(100, 255),
-        p.random(100, 255),
-        200,
+      this.pos = p.createVector(x, y);
+      this.prev = this.pos.copy();
+      this.vel = p5.Vector.random2D().mult(
+        p.random(CONFIG.VELOCITY_MIN, CONFIG.VELOCITY_MAX),
       );
-      this.lifespan = maxLife; // Maximum lifespan in frames
-      this.life = 0; // Current life
-      this.noiseOffset = p.random(1000); // Unique Perlin noise offset
-      this.size = p.random(1, 7); // Star size
+
+      // Cosmic color palette
+      const range = HUE_RANGES[Math.floor(Math.random() * HUE_RANGES.length)];
+      this.hue = p.random(range[0], range[1]);
+      this.sat = p.random(60, 90);
+      this.bri = p.random(80, 100);
+
+      this.lifespan = maxLife;
+      this.life = 0;
+      this.noiseOffset = p.random(1000);
+      this.size = p.random(CONFIG.STAR_SIZE_MIN, CONFIG.STAR_SIZE_MAX);
+      this.twinkleOffset = p.random(1000);
+      this.twinkleSpeed = p.random(0.03, 0.08);
     }
 
     update() {
-      // Apply random noise to velocity
       let noiseForce = p.createVector(
-        p.map(p.noise(this.noiseOffset + p.frameCount * 0.01), 0, 1, -0.5, 0.5),
         p.map(
-          p.noise(this.noiseOffset + p.frameCount * 0.01 + 1000),
-          0,
-          1,
-          -0.5,
-          0.5,
+          p.noise(this.noiseOffset + p.frameCount * CONFIG.NOISE_SCALE),
+          0, 1, -CONFIG.NOISE_FORCE, CONFIG.NOISE_FORCE,
+        ),
+        p.map(
+          p.noise(this.noiseOffset + p.frameCount * CONFIG.NOISE_SCALE + 1000),
+          0, 1, -CONFIG.NOISE_FORCE, CONFIG.NOISE_FORCE,
         ),
       );
       this.vel.add(noiseForce);
 
-      // Optional: Add attraction to gravity center
       let gravityDir = p5.Vector.sub(gravityCenter, this.pos).normalize();
-      this.vel.add(gravityDir.mult(attractionStrength));
+      this.vel.add(gravityDir.mult(CONFIG.ATTRACTION_STRENGTH));
 
-      // Update position
       this.pos.add(this.vel);
-
-      // Increment lifespan
       this.life++;
-
-      // Dynamic fading
-      let fadeAmount = p.map(this.life, 0, this.lifespan, 255, 0);
-      this.color.setAlpha(fadeAmount);
     }
 
     show() {
-      // Draw the star
+      let lifeRatio = this.life / this.lifespan;
+      let fadeAlpha = p.map(this.life, 0, this.lifespan, 80, 0);
+      let twinkle = p.map(
+        p.sin(p.frameCount * this.twinkleSpeed + this.twinkleOffset),
+        -1, 1, 0.6, 1.0,
+      );
+
+      // Glow layers
       p.noStroke();
-      p.fill(this.color);
+      p.fill(this.hue, this.sat, this.bri * twinkle, CONFIG.GLOW_OUTER_ALPHA * (1 - lifeRatio));
+      p.ellipse(this.pos.x, this.pos.y, this.size * CONFIG.GLOW_OUTER_SIZE);
+      p.fill(this.hue, this.sat, this.bri * twinkle, CONFIG.GLOW_INNER_ALPHA * (1 - lifeRatio));
+      p.ellipse(this.pos.x, this.pos.y, this.size * CONFIG.GLOW_INNER_SIZE);
+
+      // Star circle
+      p.noStroke();
+      p.fill(this.hue, this.sat, this.bri * twinkle, fadeAlpha);
       p.ellipse(this.pos.x, this.pos.y, this.size);
 
-      // Draw the trail
-      p.stroke(this.color);
-      p.strokeWeight(4.5);
+      // Trail (color-matched, tapered)
+      let trailWeight = p.map(
+        this.life, 0, this.lifespan,
+        CONFIG.TRAIL_WEIGHT_MAX, CONFIG.TRAIL_WEIGHT_MIN,
+      );
+      p.stroke(this.hue, this.sat, this.bri, fadeAlpha * 0.4);
+      p.strokeWeight(trailWeight);
       p.line(this.pos.x, this.pos.y, this.prev.x, this.prev.y);
 
-      // Update trail position
       this.prev = this.pos.copy();
     }
 
@@ -132,16 +194,14 @@ function ReleaseStarsSketch(p) {
   }
 
   p.createNewStar = function () {
-    // Prevent adding new stars if we've reached the maxStars limit
-    if (particles.length >= maxStars) return;
+    if (particles.length >= CONFIG.MAX_PARTICLES) return;
 
-    // Spawn a star within the bounds of the CSS-defined circular container
     let angle = p.random(p.TWO_PI);
-    let radius = p.random(containerRadius); // Random distance within the circle
+    let radius = p.random(containerRadius);
     let x = containerX + radius * p.cos(angle);
     let y = containerY + radius * p.sin(angle);
 
-    const maxLife = p.random(300, 800); // Lifespan of 5-13 seconds
+    const maxLife = p.random(CONFIG.MIN_LIFE, CONFIG.MAX_LIFE);
     particles.push(new Particle(x, y, maxLife));
   };
 }

@@ -24,7 +24,7 @@
                 justify-content: center;
                 height: 100vh;
                 background: black;
-                font-family: "Inter", sans-serif; /* Modern font for entire page */
+                font-family: "Inter", sans-serif;
             }
 
             /* The circle container for p5 star placement */
@@ -36,7 +36,11 @@
                 width: 200px;
                 height: 200px;
                 border-radius: 50%;
-                border: 2px solid white;
+                border: 1px solid rgba(100, 140, 255, 0.3);
+                box-shadow:
+                    0 0 15px rgba(100, 140, 255, 0.15),
+                    0 0 40px rgba(100, 140, 255, 0.05),
+                    inset 0 0 15px rgba(100, 140, 255, 0.05);
                 pointer-events: none;
             }
             /* Responsive adjustments */
@@ -55,7 +59,8 @@
 
             /* The canvas (created by p5) */
             canvas {
-                touch-action: manipulation; /* For pinch-to-zoom on mobile, if needed */
+                touch-action: manipulation;
+                transition: opacity 0.4s ease;
             }
 
             /* Branding (top-left) */
@@ -67,8 +72,10 @@
                 font-size: 1.2rem;
                 color: #fff;
                 padding: 6px 12px;
-                background: #2f6bf1;
-                border-radius: 4px;
+                background: rgba(47, 107, 241, 0.7);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                border-radius: 6px;
             }
 
             /* CTA container (left side) */
@@ -90,9 +97,10 @@
                 line-height: 1.5;
                 margin: 0;
                 font-weight: 400;
+                opacity: 0.85;
             }
 
-            /* Minimal toolbar (top-right), no zoom controls now */
+            /* Minimal toolbar (top-right) */
             #toolbar {
                 position: absolute;
                 top: 20px;
@@ -101,22 +109,29 @@
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                background: rgba(255, 255, 255, 0.1);
+                background: rgba(255, 255, 255, 0.08);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
                 border-radius: 8px;
                 padding: 6px 8px;
             }
             #toolbar button {
                 background: none;
-                border: 1px solid rgba(255, 255, 255, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.2);
                 border-radius: 50%;
                 color: #fff;
                 width: 36px;
                 height: 36px;
                 font-size: 1.1rem;
                 cursor: pointer;
+                transition: background 0.3s ease, border-color 0.3s ease;
+            }
+            #toolbar button:hover {
+                background: rgba(255, 255, 255, 0.1);
+                border-color: rgba(255, 255, 255, 0.4);
             }
 
-            /* Info box with gradient background, restored “beauty” */
+            /* Info box with gradient background */
             #infoBox {
                 position: absolute;
                 bottom: 20px;
@@ -124,14 +139,16 @@
                 width: 250px;
                 background: linear-gradient(
                     145deg,
-                    rgba(20, 20, 20, 0.9),
-                    rgba(50, 50, 50, 0.9)
+                    rgba(20, 20, 30, 0.85),
+                    rgba(40, 40, 60, 0.85)
                 );
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
                 color: #fff;
                 padding: 15px;
                 font-size: 0.95rem;
                 border-radius: 8px;
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
                 display: none;
                 z-index: 999;
             }
@@ -190,25 +207,8 @@
 
         <!-- Main Script for Managing Sketches & UI -->
         <script>
-            // Cookie handling
-            function getCookie(name) {
-                const value = `; ${document.cookie}`;
-                const parts = value.split(`; ${name}=`);
-                if (parts.length === 2) return parts.pop().split(";").shift();
-                return null;
-            }
-            function setCookie(name, value, days) {
-                let expires = "";
-                if (days) {
-                    const date = new Date();
-                    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-                    expires = "; expires=" + date.toUTCString();
-                }
-                document.cookie =
-                    name + "=" + (value || "") + expires + "; path=/";
-            }
-
-            let currentMode = getCookie("starMode") || "cosmicStars";
+            let currentMode =
+                localStorage.getItem("starMode") || "cosmicStars";
             let activeSketch = null;
 
             function loadSketch(mode) {
@@ -224,14 +224,28 @@
             }
             loadSketch(currentMode);
 
+            // Mode switch with fade transition
             const switchButton = document.getElementById("switchMode");
             switchButton.addEventListener("click", () => {
-                currentMode =
-                    currentMode === "cosmicStars"
-                        ? "releaseStars"
-                        : "cosmicStars";
-                setCookie("starMode", currentMode, 7);
-                loadSketch(currentMode);
+                const canvas = document.querySelector("canvas");
+                if (canvas) canvas.style.opacity = "0";
+
+                setTimeout(() => {
+                    currentMode =
+                        currentMode === "cosmicStars"
+                            ? "releaseStars"
+                            : "cosmicStars";
+                    localStorage.setItem("starMode", currentMode);
+                    loadSketch(currentMode);
+
+                    const newCanvas = document.querySelector("canvas");
+                    if (newCanvas) {
+                        newCanvas.style.opacity = "0";
+                        requestAnimationFrame(() => {
+                            newCanvas.style.opacity = "1";
+                        });
+                    }
+                }, 400);
             });
 
             // Info icon toggle
