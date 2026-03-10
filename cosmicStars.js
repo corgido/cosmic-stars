@@ -8,35 +8,80 @@ of stars orbiting dynamically.
 
 Features include:
 - Radial wobble with Perlin noise
-- Colorful, evolving trails
+- Colorful, evolving trails with cosmic color palette
+- Glow effects and star twinkle
 - Automatic star generation and expiration
-- Brief delay before autostarts and continues perpetually.
 
 License: MIT
 */
 
 function CosmicStarsSketch(p) {
+  const CONFIG = {
+    MAX_PARTICLES: 80,
+    SPAWN_INTERVAL: 20,
+    START_DELAY: 600,
+    MIN_LIFE: 300,
+    MAX_LIFE: 900,
+    ORBIT_SPEED: 0.02,
+    ORBIT_RADIUS_MIN: 1.05,
+    ORBIT_RADIUS_MAX: 1.15,
+    STAR_SIZE_MIN: 2,
+    STAR_SIZE_MAX: 5,
+    BURN_MIN: 0.2,
+    BURN_MAX: 0.5,
+    BG_FADE: 22,
+    TRAIL_WEIGHT_MAX: 2.5,
+    TRAIL_WEIGHT_MIN: 0.5,
+    TRAIL_ALPHA_MAX: 30,
+    TRAIL_ALPHA_MIN: 5,
+    GLOW_OUTER_SIZE: 6,
+    GLOW_INNER_SIZE: 3,
+    GLOW_OUTER_ALPHA: 8,
+    GLOW_INNER_ALPHA: 15,
+    RESIZE_DEBOUNCE: 150,
+  };
+
+  // Cosmic hue ranges: blues, purples, golds, warm reds
+  const HUE_RANGES = [[200, 260], [270, 310], [20, 50], [0, 15]];
+
   let particles = [];
   let containerX, containerY, containerRadius;
+  let resizeTimer;
+  let bgBuffer;
 
   p.setup = function () {
     p.createCanvas(p.windowWidth, p.windowHeight);
+    p.colorMode(p.HSB, 360, 100, 100, 100);
+    p.initializeContainer();
+    createBgBuffer();
 
-    // Delay container init to ensure DOM is ready
+    p.noLoop();
     setTimeout(() => {
-      p.initializeContainer();
-      // Delay animation start by 555ms
-      p.noLoop();
-      setTimeout(() => {
-        p.loop(); // Start the animation
-        p.createNewStar();
-      }, 555);
-    }, 100); // small delay for bounding box
+      p.loop();
+      p.createNewStar();
+    }, CONFIG.START_DELAY);
   };
 
+  function createBgBuffer() {
+    bgBuffer = p.createGraphics(p.width, p.height);
+    bgBuffer.colorMode(bgBuffer.HSB, 360, 100, 100, 100);
+    bgBuffer.background(0, 0, 0);
+    let maxDim = Math.max(p.width, p.height);
+    for (let r = maxDim; r > 0; r -= 4) {
+      bgBuffer.noStroke();
+      let alpha = p.map(r, 0, maxDim, 1.5, 0);
+      bgBuffer.fill(260, 40, 8, alpha);
+      bgBuffer.ellipse(p.width / 2, p.height / 2, r, r);
+    }
+  }
+
   p.windowResized = function () {
-    p.resizeCanvas(p.windowWidth, p.windowHeight);
-    p.initializeContainer();
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      p.resizeCanvas(p.windowWidth, p.windowHeight);
+      p.initializeContainer();
+      createBgBuffer();
+    }, CONFIG.RESIZE_DEBOUNCE);
   };
 
   p.initializeContainer = function () {
@@ -47,32 +92,31 @@ function CosmicStarsSketch(p) {
     let w = rect.width;
     let h = rect.height;
 
-    // Fallback if bounding box is zero
     if (w === 0 || h === 0) {
       w = p.width / 2;
       h = p.height / 2;
     }
 
-    containerX = rect.left + w / 2 + window.scrollX;
-    containerY = rect.top + h / 2 + window.scrollY;
+    containerX = rect.left + w / 2;
+    containerY = rect.top + h / 2;
     containerRadius = w / 2;
   };
 
   p.draw = function () {
-    p.background(0, 25); // Trails effect
+    p.tint(0, 0, 100, CONFIG.BG_FADE);
+    p.image(bgBuffer, 0, 0);
+    p.noTint();
 
-    // Generate a new star every 20 frames
-    if (p.frameCount % 20 === 0) {
+    if (p.frameCount % CONFIG.SPAWN_INTERVAL === 0) {
       p.createNewStar();
     }
 
-    // Update and draw particles
     for (let i = particles.length - 1; i >= 0; i--) {
       particles[i].update();
       particles[i].show();
 
       if (particles[i].isDead()) {
-        particles.splice(i, 1); // Remove expired stars
+        particles.splice(i, 1);
       }
     }
   };
@@ -83,28 +127,33 @@ function CosmicStarsSketch(p) {
       this.pos = this.origin.copy();
       this.prev = this.pos.copy();
       this.angle = p.random(p.TWO_PI);
-      this.radius = p.random(containerRadius * 1.05, containerRadius * 1.15);
-      this.color = p.color(
-        p.random(100, 255),
-        p.random(100, 255),
-        p.random(100, 255),
-        200,
+      this.radius = p.random(
+        containerRadius * CONFIG.ORBIT_RADIUS_MIN,
+        containerRadius * CONFIG.ORBIT_RADIUS_MAX,
       );
+
+      // Cosmic color palette
+      const range = HUE_RANGES[Math.floor(Math.random() * HUE_RANGES.length)];
+      this.hue = p.random(range[0], range[1]);
+      this.sat = p.random(60, 90);
+      this.bri = p.random(80, 100);
+      this.color = p.color(this.hue, this.sat, this.bri, 80);
+
       this.lifespan = maxLife;
       this.life = 0;
-      this.size = p.random(1, 3);
+      this.size = p.random(CONFIG.STAR_SIZE_MIN, CONFIG.STAR_SIZE_MAX);
       this.rotation = p.random(p.TWO_PI);
       this.rotationSpeed = p.random(-0.25, 0.25);
       this.direction = p.random() > 0.5 ? 1 : -1;
       this.noiseOffset = p.random(1000);
-      this.burnStrength = p.random(0.2, 0.5);
+      this.burnStrength = p.random(CONFIG.BURN_MIN, CONFIG.BURN_MAX);
+      this.twinkleOffset = p.random(1000);
+      this.twinkleSpeed = p.random(0.03, 0.08);
     }
 
     update() {
-      // Increment angle for orbit motion
-      this.angle += this.direction * 0.02;
+      this.angle += this.direction * CONFIG.ORBIT_SPEED;
 
-      // "Burn radial out" with Perlin noise
       let radialBurn = p.map(
         p.noise(this.noiseOffset + p.frameCount * 0.01),
         0,
@@ -114,35 +163,46 @@ function CosmicStarsSketch(p) {
       );
       let radialOffset = this.radius + radialBurn * this.radius;
 
-      // Update position
       this.pos.x = containerX + radialOffset * p.cos(this.angle);
       this.pos.y = containerY + radialOffset * p.sin(this.angle);
 
-      // Increment lifespan
+      this.rotation += this.rotationSpeed * 0.1;
       this.life++;
     }
 
     show() {
-      // Draw star shape
+      let twinkle = p.map(
+        p.sin(p.frameCount * this.twinkleSpeed + this.twinkleOffset),
+        -1, 1, 0.6, 1.0,
+      );
+
+      // Glow layers
+      p.noStroke();
+      p.fill(this.hue, this.sat, this.bri * twinkle, CONFIG.GLOW_OUTER_ALPHA);
+      p.ellipse(this.pos.x, this.pos.y, this.size * CONFIG.GLOW_OUTER_SIZE);
+      p.fill(this.hue, this.sat, this.bri * twinkle, CONFIG.GLOW_INNER_ALPHA);
+      p.ellipse(this.pos.x, this.pos.y, this.size * CONFIG.GLOW_INNER_SIZE);
+
+      // Star shape
       p.push();
       p.translate(this.pos.x, this.pos.y);
       p.rotate(this.rotation);
-      p.fill(this.color);
+      p.fill(this.hue, this.sat, this.bri * twinkle, 80);
       p.noStroke();
       this.drawStar(0, 0, this.size, this.size / 2, 5);
       p.pop();
 
-      // Dynamic trail color
-      let trailColor = p.color(
-        p.map(p.sin(p.frameCount * 0.01), -1, 1, 100, 255),
-        p.map(p.cos(p.frameCount * 0.01), -1, 1, 100, 255),
-        p.map(p.sin(p.frameCount * 0.02), -1, 1, 100, 255),
-        25,
+      // Trail (color-matched, tapered)
+      let trailAlpha = p.map(
+        this.life, 0, this.lifespan,
+        CONFIG.TRAIL_ALPHA_MAX, CONFIG.TRAIL_ALPHA_MIN,
       );
-
-      // Draw trail
-      p.stroke(trailColor);
-      p.strokeWeight(2.5);
+      let trailWeight = p.map(
+        this.life, 0, this.lifespan,
+        CONFIG.TRAIL_WEIGHT_MAX, CONFIG.TRAIL_WEIGHT_MIN,
+      );
+      p.stroke(this.hue, this.sat, this.bri, trailAlpha);
+      p.strokeWeight(trailWeight);
       p.line(this.pos.x, this.pos.y, this.prev.x, this.prev.y);
       this.prev = this.pos.copy();
     }
@@ -168,7 +228,8 @@ function CosmicStarsSketch(p) {
   }
 
   p.createNewStar = function () {
-    const maxLife = p.random(300, 900); // 5 to 15 seconds
+    if (particles.length >= CONFIG.MAX_PARTICLES) return;
+    const maxLife = p.random(CONFIG.MIN_LIFE, CONFIG.MAX_LIFE);
     particles.push(new Particle(containerX, containerY, maxLife));
   };
 }
